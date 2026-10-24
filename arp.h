@@ -32,3 +32,4 @@ void parse_arp_header(
     const array<uint8_t,28> &output,  arp_header& header
 
 );
+bool validate_arp_header(const arp_header& header);
