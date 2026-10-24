@@ -6,10 +6,7 @@
 
 using namespace std;
 
-void serialise_arp_header(
-    const arp_header& header,
-    array<uint8_t, 28>& output
-);
+
 
 struct arp_header{
     uint16_t hrd_type;
@@ -25,3 +22,7 @@ struct arp_header{
 
 
 };
+void serialise_arp_header(
+    const arp_header& header,
+    array<uint8_t, 28>& output
+);

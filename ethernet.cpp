@@ -57,7 +57,7 @@ int main(){
 
     serialise_ethernet_header(destination_eth,source_eth,ether_type_eth,ptr);
     parse_ethernet(&serialised_ethernet_header,&R_destination_mac,&R_source_mac,&R_ether_type);
-    cout << hex << setfill('0');
+    cout << hex << setfill('0'); // testing code ai generated
 
     for (int i = 0; i < 14; i++) {
     cout << setw(2) << static_cast<int>(serialised_ethernet_header[i]) << " ";
