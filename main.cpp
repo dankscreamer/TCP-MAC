@@ -77,50 +77,68 @@ cout << (validate_arp_header(arp) ? "Valid ARP header" : "Unsupported ARP header
 
 
 
-//Ethernet
-Ethernet_header header; 
-    array<uint8_t,14> serialised_ethernet_header;
-    array<uint8_t, 14> *ptr= &serialised_ethernet_header;
+// Ethernet ai generated testing code 
 
-    header.destination_mac={100,100,100,100,100,100};
-    header.source_mac={99,99,99,99,99,99};
-    header.ether_type=0x0800;
-    array<uint8_t,6>destination_eth=header.destination_mac;
-    array<uint8_t,6>source_eth=header.source_mac;
-    uint16_t ether_type_eth=header.ether_type;
+Ethernet_header header{};
+
+array<uint8_t, 14> serialised_ethernet_header{};
+Ethernet_header parsed_ethernet{};
 
 
-
-    array<uint8_t,6>R_destination_mac;
-    array<uint8_t,6>R_source_mac;
-    uint16_t R_ether_type;
-    
+header.destination_mac = {100, 100, 100, 100, 100, 100};
+header.source_mac = {99, 99, 99, 99, 99, 99};
+header.ether_type = 0x0800;
 
 
+serialise_ethernet_header(header, serialised_ethernet_header);
 
-    serialise_ethernet_header(destination_eth,source_eth,ether_type_eth,ptr);
-    parse_ethernet(&serialised_ethernet_header,&R_destination_mac,&R_source_mac,&R_ether_type);
-    cout << hex << setfill('0'); // testing code ai generated
+cout << "\n\nSerialized Ethernet Header:\n";
+cout << hex << uppercase << setfill('0');
 
-    for (int i = 0; i < 14; i++) {
+for (int i = 0; i < 14; i++) {
+    if (i % 8 == 0) {
+        cout << "\n" << setw(2) << i << ": ";
+    }
+
     cout << setw(2) << static_cast<int>(serialised_ethernet_header[i]) << " ";
-    }
+}
 
-    cout << endl;
-    cout << hex << setfill('0');
+cout << dec << endl;
 
-    cout << "Destination MAC: ";
-    for (int i = 0; i < 6; i++) {
-        cout << setw(2) << static_cast<int>(R_destination_mac[i]) << " ";
-    }
 
-    cout << "\nSource MAC: ";
-    for (int i = 0; i < 6; i++) {
-        cout << setw(2) << static_cast<int>(R_source_mac[i]) << " ";
-    }
+parse_ethernet(parsed_ethernet, serialised_ethernet_header);
 
-    cout << "\nEtherType: 0x"
-        << setw(4) << R_ether_type << endl;
+
+cout << "\nParsed Destination MAC: ";
+cout << hex << uppercase << setfill('0');
+
+for (int i = 0; i < 6; i++) {
+    cout << setw(2) << static_cast<int>(parsed_ethernet.destination_mac[i]) << " ";
+}
+
+
+cout << "\nParsed Source MAC: ";
+
+for (int i = 0; i < 6; i++) {
+    cout << setw(2) << static_cast<int>(parsed_ethernet.source_mac[i]) << " ";
+}
+
+
+cout << "\nParsed EtherType: 0x"
+     << setw(4) << parsed_ethernet.ether_type << endl;
+
+
+bool ethernet_match =
+    header.destination_mac == parsed_ethernet.destination_mac &&
+    header.source_mac == parsed_ethernet.source_mac &&
+    header.ether_type == parsed_ethernet.ether_type;
+
+cout << (ethernet_match
+         ? "Ethernet header round-trip successful"
+         : "Ethernet header mismatch")
+     << endl;
+
+cout << dec;
 
     
 

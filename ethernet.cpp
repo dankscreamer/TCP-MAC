@@ -5,34 +5,51 @@
 #include "./ethernet.h"
 #include <array>
 using namespace std;
-void parse_ethernet(array<uint8_t,14> *pep,array<uint8_t,6> *R,array<uint8_t,6>*S,uint16_t *E){
+#include <iostream>
+#include <cstdint>
+#include <iomanip>
+#include <algorithm>
+#include <array>
+using namespace std;
 
-    for (int i=0;i<=5;i++){
-        (*R)[i]=(*pep)[i];
 
+
+void serialise_ethernet_header(Ethernet_header &head,
+                               array<uint8_t, 14> &serialised);
+
+void parse_ethernet(Ethernet_header &head,
+                    array<uint8_t, 14> &parsed);
+
+void parse_ethernet(Ethernet_header &head,
+                    array<uint8_t, 14> &parsed) {
+
+    for (int i = 0; i < 6; i++) {
+        head.destination_mac[i] = parsed[i];
     }
-    for(int i=6;i<=11;i++){
-        (*S)[i-6]=(*pep)[i];
 
+    for (int i = 6; i < 12; i++) {
+        head.source_mac[i - 6] = parsed[i];
     }
-    (*E)=((*pep)[12]<<8 |(*pep)[13]);
-    
 
-
+    head.ether_type =
+        (static_cast<uint16_t>(parsed[12]) << 8) |
+        parsed[13];
 }
-void serialise_ethernet_header(array<uint8_t,6>dest,array<uint8_t,6>sour,uint16_t eth,array<uint8_t,14> *ser){
 
+void serialise_ethernet_header(Ethernet_header &head,
+                               array<uint8_t, 14> &serialised) {
 
-    for (int i=0;i<=5;i++){
-        (*ser)[i]=dest[i];
+    for (int i = 0; i < 6; i++) {
+        serialised[i] = head.destination_mac[i];
     }
-    for (int i=6;i<=11;i++){
-        (*ser)[i]=sour[i-6];
-    }
-    (*ser)[12] = (eth >> 8) & 0xFF;
-    (*ser)[13] = eth & 0xFF;
 
-} 
+    for (int i = 6; i < 12; i++) {
+        serialised[i] = head.source_mac[i - 6];
+    }
+
+    serialised[12] = (head.ether_type >> 8) & 0xFF;
+    serialised[13] = head.ether_type & 0xFF;
+}
 
 // int main(){
 //     Ethernet_header header; 
