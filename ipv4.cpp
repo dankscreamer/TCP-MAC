@@ -46,10 +46,10 @@ void parse_ipv4_header(const array<uint8_t, 20>& serial, ipv4& pho) {
     pho.dscsp_ecn = serial[1];
 
     pho.total_length =
-        (static_cast<uint16_t>(serial[2]) << 8) | serial[3];
+        ((serial[2]) << 8) | serial[3];
 
     pho.identification =
-        (static_cast<uint16_t>(serial[4]) << 8) | serial[5];
+        ((serial[4]) << 8) | serial[5];
 
     pho.flag = (serial[6] >> 5) & 0x07;
 
@@ -60,7 +60,7 @@ void parse_ipv4_header(const array<uint8_t, 20>& serial, ipv4& pho) {
     pho.protocol = serial[9];
 
     pho.header_checksum =
-        (static_cast<uint16_t>(serial[10]) << 8) | serial[11];
+        ((serial[10]) << 8) | serial[11];
 
     for (int i = 12; i <= 15; i++) {
         pho.source_ip[i - 12] = serial[i];
@@ -79,7 +79,7 @@ uint16_t checksum(array<uint8_t, 20> header) {
 
     for (int i = 0; i < 20; i += 2) {
         uint16_t word =
-            (static_cast<uint16_t>(header[i]) << 8) |
+            ((header[i]) << 8) |
             header[i + 1];
 
         sum += word;
