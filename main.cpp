@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <array>
 #include <cstdint>
@@ -5,134 +6,108 @@
 
 #include "./arp.h"
 #include "./ethernet.h"
+#include "./ipv4.h"
 
 using namespace std;
 
-void encapsulated_frame(
-    const array<uint8_t, 14>& sr_eth,
-    const array<uint8_t, 28>& sr_arp,
-    array<uint8_t, 42>& ethernet_frame
-) {
-    for (size_t i = 0; i < sr_eth.size(); i++) {
-        ethernet_frame[i] = sr_eth[i];
-    }
-
-    for (size_t i = 0; i < sr_arp.size(); i++) {
-        ethernet_frame[14 + i] = sr_arp[i];
-    }
-}
-
 int main() {
-    arp_header arp{};
+    ipv4 original{};
 
-    arp.hrd_type = 0x0001;
-    arp.prt_type = 0x0800;
-    arp.hrd_add_len = 6;
-    arp.prt_add_len = 4;
-    arp.oper = 0x0001;
-    arp.sender_hrd_add = {10, 10, 10, 10, 10, 10};
-    arp.sender_prt_add = {9, 9, 9, 9};
-    arp.target_hrd_add = {0, 0, 0, 0, 0, 0};
-    arp.target_prt_add = {7, 7, 7, 7};
+    original.version = 4;
+    original.ihl = 5;
+    original.dscsp_ecn = 0;
+    original.total_length = 60;
+    original.identification = 0x1234;
+    original.flag = 2;
+    original.fragment_offset = 0;
+    original.ttl = 64;
+    original.protocol = 6;
+    original.header_checksum = 0;
+    original.source_ip = {192, 168, 1, 10};
+    original.destination_ip = {192, 168, 1, 20};
 
-    array<uint8_t, 28> arp_bytes{};
-    serialise_arp_header(arp, arp_bytes);
+    array<uint8_t, 20> serialized{};
 
-    arp_header parsed_arp{};
-    parse_arp_header(arp_bytes, parsed_arp);
+    serialise_ipv4_header(original, serialized);
 
-    bool arp_match =
-        arp.hrd_type == parsed_arp.hrd_type &&
-        arp.prt_type == parsed_arp.prt_type &&
-        arp.hrd_add_len == parsed_arp.hrd_add_len &&
-        arp.prt_add_len == parsed_arp.prt_add_len &&
-        arp.oper == parsed_arp.oper &&
-        arp.sender_hrd_add == parsed_arp.sender_hrd_add &&
-        arp.sender_prt_add == parsed_arp.sender_prt_add &&
-        arp.target_hrd_add == parsed_arp.target_hrd_add &&
-        arp.target_prt_add == parsed_arp.target_prt_add;
-
-    cout << (arp_match ? "PASS" : "FAIL") << ": ARP round-trip\n";
-    cout << (validate_arp_header(arp) ? "PASS" : "FAIL")
-         << ": Valid ARP header\n";
-
-    arp_header invalid_arp = arp;
-    invalid_arp.hrd_type = 0x0002;
-
-    cout << (!validate_arp_header(invalid_arp) ? "PASS" : "FAIL")
-         << ": Invalid ARP header rejected\n";
-
-    Ethernet_header ethernet{};
-
-    ethernet.destination_mac = {100, 100, 100, 100, 100, 100};
-    ethernet.source_mac = {99, 99, 99, 99, 99, 99};
-    ethernet.ether_type = 0x0806;
-
-    array<uint8_t, 14> ethernet_bytes{};
-    serialise_ethernet_header(ethernet, ethernet_bytes);
-
-    Ethernet_header parsed_ethernet{};
-    parse_ethernet(parsed_ethernet, ethernet_bytes);
-
-    bool ethernet_match =
-        ethernet.destination_mac == parsed_ethernet.destination_mac &&
-        ethernet.source_mac == parsed_ethernet.source_mac &&
-        ethernet.ether_type == parsed_ethernet.ether_type;
-
-    cout << (ethernet_match ? "PASS" : "FAIL")
-         << ": Ethernet round-trip\n";
-
-    array<uint8_t, 42> ethernet_frame{};
-    encapsulated_frame(ethernet_bytes, arp_bytes, ethernet_frame);
-
-    bool correct_length = ethernet_frame.size() == 42;
-
-    bool correct_ethertype =
-        ethernet_frame[12] == 0x08 &&
-        ethernet_frame[13] == 0x06;
-
-    bool correct_ethernet_payload = true;
-
-    for (size_t i = 0; i < ethernet_bytes.size(); i++) {
-        if (ethernet_frame[i] != ethernet_bytes[i]) {
-            correct_ethernet_payload = false;
-            break;
-        }
-    }
-
-    bool correct_arp_payload = true;
-
-    for (size_t i = 0; i < arp_bytes.size(); i++) {
-        if (ethernet_frame[14 + i] != arp_bytes[i]) {
-            correct_arp_payload = false;
-            break;
-        }
-    }
-
-    cout << (correct_length ? "PASS" : "FAIL")
-         << ": Frame length is 42 bytes\n";
-
-    cout << (correct_ethertype ? "PASS" : "FAIL")
-         << ": EtherType identifies ARP (0x0806)\n";
-
-    cout << (correct_ethernet_payload ? "PASS" : "FAIL")
-         << ": Ethernet header copied correctly\n";
-
-    cout << (correct_arp_payload ? "PASS" : "FAIL")
-         << ": ARP payload copied correctly\n";
-
-    cout << "\nComplete Ethernet + ARP frame:\n";
     cout << hex << uppercase << setfill('0');
 
-    for (size_t i = 0; i < ethernet_frame.size(); i++) {
-        if (i % 8 == 0) {
+    uint16_t stored_checksum =
+        (static_cast<uint16_t>(serialized[10]) << 8) |
+        serialized[11];
+
+    cout << "Checksum in header: 0x"
+         << setw(4) << stored_checksum << endl;
+
+    cout << "Checksum validation: "
+         << (checksum(serialized) == stored_checksum ? "PASS" : "FAIL")
+         << endl;
+
+    cout << "=== Serialized IPv4 Header (20 bytes) ===\n";
+
+    for (size_t i = 0; i < serialized.size(); i++) {
+        if (i % 4 == 0) {
             cout << "\n" << setw(2) << i << ": ";
         }
 
-        cout << setw(2) << static_cast<int>(ethernet_frame[i]) << " ";
+        cout << setw(2) << static_cast<int>(serialized[i]) << " ";
     }
 
-    cout << dec << "\n";
+    cout << "\n\n";
 
-    return 0;
+    ipv4 parsed{};
+    parse_ipv4_header(serialized, parsed);
+
+    bool match =
+        original.version == parsed.version &&
+        original.ihl == parsed.ihl &&
+        original.dscsp_ecn == parsed.dscsp_ecn &&
+        original.total_length == parsed.total_length &&
+        original.identification == parsed.identification &&
+        original.flag == parsed.flag &&
+        original.fragment_offset == parsed.fragment_offset &&
+        original.ttl == parsed.ttl &&
+        original.protocol == parsed.protocol &&
+        stored_checksum == parsed.header_checksum &&
+        original.source_ip == parsed.source_ip &&
+        original.destination_ip == parsed.destination_ip;
+
+    cout << dec;
+    cout << (match
+                 ? "PASS: IPv4 round-trip test\n"
+                 : "FAIL: IPv4 round-trip test\n");
+
+    cout << "\n=== Parsed IPv4 Header ===\n";
+    cout << "Version:           " << static_cast<int>(parsed.version) << '\n';
+    cout << "IHL:               " << static_cast<int>(parsed.ihl) << '\n';
+    cout << "Header length:     " << static_cast<int>(parsed.ihl) * 4
+         << " bytes\n";
+    cout << "DSCP/ECN:          " << static_cast<int>(parsed.dscsp_ecn) << '\n';
+    cout << "Total length:      " << parsed.total_length << '\n';
+
+    cout << hex << uppercase << setfill('0');
+    cout << "Identification:    0x" << setw(4) << parsed.identification << '\n';
+    cout << "Header checksum:   0x" << setw(4) << parsed.header_checksum << '\n';
+
+    cout << dec;
+    cout << "Flags:             " << static_cast<int>(parsed.flag) << '\n';
+    cout << "Fragment offset:   " << parsed.fragment_offset << '\n';
+    cout << "TTL:               " << static_cast<int>(parsed.ttl) << '\n';
+    cout << "Protocol:          " << static_cast<int>(parsed.protocol) << '\n';
+
+    cout << "Source IP:         ";
+    for (size_t i = 0; i < parsed.source_ip.size(); i++) {
+        if (i > 0) cout << ".";
+        cout << static_cast<int>(parsed.source_ip[i]);
+    }
+    cout << '\n';
+
+    cout << "Destination IP:    ";
+    for (size_t i = 0; i < parsed.destination_ip.size(); i++) {
+        if (i > 0) cout << ".";
+        cout << static_cast<int>(parsed.destination_ip[i]);
+    }
+    cout << '\n';
+
+    return match && checksum(serialized) == stored_checksum ? 0 : 1;
 }

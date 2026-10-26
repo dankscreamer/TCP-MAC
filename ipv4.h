@@ -24,3 +24,7 @@ struct ipv4{
     array<uint8_t,4> destination_ip;
 };
 void serialise_ipv4_header(const ipv4 &str,array<uint8_t,20> &ser);
+void parse_ipv4_header(const array<uint8_t,20> &serial, ipv4 &pho);
+uint16_t checksum(array<uint8_t,20> header);
+
+
