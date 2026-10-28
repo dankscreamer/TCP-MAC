@@ -17,8 +17,7 @@ using namespace std;
 void serialise_ethernet_header(Ethernet_header &head,
                                array<uint8_t, 14> &serialised);
 
-void parse_ethernet(Ethernet_header &head,
-                    array<uint8_t, 14> &parsed);
+
 
 void parse_ethernet(Ethernet_header &head,
                     array<uint8_t, 14> &parsed) {
