@@ -1,7 +1,4 @@
-#include <iostream>
-#include <cstdint>
-#include <iomanip>
-#include <algorithm>
+
 #include "./packet.h"
 #include <array>
 using namespace std;
