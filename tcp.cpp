@@ -21,6 +21,8 @@ void serialise_tcp_header(tcp &tl,array<uint8_t,20> &sms){
     sms[10]=(tl.acknowledgement_number>> 8 )& 0xff;
     sms[11]=(tl.acknowledgement_number ) & 0xff;
     
+    sms[12]=((tl.data_offset & 0xf) << 4) | ((tl.flags & 0x8) << 1);
+
 
 
 
