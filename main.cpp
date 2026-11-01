@@ -1,94 +1,83 @@
 
 #include <iostream>
-#include <vector>
 #include <array>
+#include <vector>
 #include <cstdint>
 
-#include "./packet_dispatcher.h"
 #include "./ethernet.h"
 #include "./ipv4.h"
-#include "./arp.h"
+#include "./tcp.h"
+#include "./packet_dispatcher.h"
 
 using namespace std;
 
 int main() {
 
-    // ==========================================
-    // TEST 1: IPv4 FRAME
-    // ==========================================
-
-    cout << "===== Testing IPv4 Dispatch =====\n";
-
     Ethernet_header eth{};
+
     eth.destination_mac = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
-    eth.source_mac      = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
-    eth.ether_type      = 0x0800;
+    eth.source_mac = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+    eth.ether_type = 0x0800;
 
     array<uint8_t, 14> eth_bytes{};
     serialise_ethernet_header(eth, eth_bytes);
 
+
     ipv4 ip{};
-    ip.version          = 4;
-    ip.ihl              = 5;
-    ip.dscsp_ecn        = 0;
-    ip.total_length     = 20;
-    ip.identification   = 0x1234;
-    ip.flag             = 2;
-    ip.fragment_offset  = 0;
-    ip.ttl              = 64;
-    ip.protocol         = 6;
-    ip.source_ip        = {192, 168, 1, 10};
-    ip.destination_ip   = {192, 168, 1, 20};
+
+    ip.version = 4;
+    ip.ihl = 5;
+    ip.dscsp_ecn = 0;
+    ip.total_length = 40;
+    ip.identification = 0x1234;
+    ip.flag = 2;
+    ip.fragment_offset = 0;
+    ip.ttl = 64;
+    ip.protocol = 6;
+    ip.source_ip = {192, 168, 1, 10};
+    ip.destination_ip = {192, 168, 1, 20};
 
     array<uint8_t, 20> ip_bytes{};
     serialise_ipv4_header(ip, ip_bytes);
 
-    vector<uint8_t> ipv4_frame;
 
-    for (int i = 0; i < 14; i++)
-        ipv4_frame.push_back(eth_bytes[i]);
+    tcp tp{};
 
-    for (int i = 0; i < 20; i++)
-        ipv4_frame.push_back(ip_bytes[i]);
+    tp.source_port = 8080;
+    tp.destination_port = 443;
+    tp.sequence_number = 0x12345678;
+    tp.acknowledgement_number = 0xABCDEF12;
+    tp.data_offset = 5;
+    tp.reserved_bits = 0;
+    tp.flags = 0x010;
+    tp.window_size = 65535;
+    tp.checksum = 0x1234;
+    tp.urgent_pointer = 0;
 
-    cout << "Frame size: " << ipv4_frame.size() << '\n';
-    dispatch(ipv4_frame);
+    array<uint8_t, 20> tcp_bytes{};
+    serialise_tcp_header(tp, tcp_bytes);
 
 
-    // ==========================================
-    // TEST 2: ARP FRAME
-    // ==========================================
+    vector<uint8_t> frame;
 
-    cout << "\n===== Testing ARP Dispatch =====\n";
+    for (int i = 0; i < 14; i++) {
+        frame.push_back(eth_bytes[i]);
+    }
 
-    eth.ether_type = 0x0806;
-    serialise_ethernet_header(eth, eth_bytes);
+    for (int i = 0; i < 20; i++) {
+        frame.push_back(ip_bytes[i]);
+    }
 
-    arp_header arp{};
-    arp.hrd_type     = 0x0001;
-    arp.prt_type     = 0x0800;
-    arp.hrd_add_len  = 6;
-    arp.prt_add_len  = 4;
-    arp.oper         = 0x0001;
+    for (int i = 0; i < 20; i++) {
+        frame.push_back(tcp_bytes[i]);
+    }
 
-    arp.sender_hrd_add = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
-    arp.sender_prt_add = {192, 168, 1, 10};
-    arp.target_hrd_add = {0, 0, 0, 0, 0, 0};
-    arp.target_prt_add = {192, 168, 1, 20};
 
-    array<uint8_t, 28> arp_bytes{};
-    serialise_arp_header(arp, arp_bytes);
+    cout << "Complete frame size: " << frame.size() << " bytes\n";
 
-    vector<uint8_t> arp_frame;
+    cout << "\nDispatching frame...\n";
 
-    for (int i = 0; i < 14; i++)
-        arp_frame.push_back(eth_bytes[i]);
-
-    for (int i = 0; i < 28; i++)
-        arp_frame.push_back(arp_bytes[i]);
-
-    cout << "Frame size: " << arp_frame.size() << '\n';
-    dispatch(arp_frame);
+    dispatch(frame);
 
     return 0;
 }

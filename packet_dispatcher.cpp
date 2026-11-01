@@ -7,6 +7,7 @@
 #include "./ipv4.h"
 #include "./arp.h"
 #include "./packet.h"
+#include "./tcp.h"
 #include <array>
 #include <vector>
 
@@ -28,6 +29,7 @@ void dispatch(vector<uint8_t> &frame) {
             cout << "IPv4 header incomplete\n";
             return;
         }
+        
 
         array<uint8_t, 20> ipv4_bytes{};
 
@@ -37,6 +39,23 @@ void dispatch(vector<uint8_t> &frame) {
 
         ipv4 head{};
         parse_ipv4_header(ipv4_bytes, head);
+        if (head.protocol==6){
+            int offset=14+(head.ihl*4);
+            array<uint8_t,20> tcp_bytes;
+            for (int i=offset;i<offset+20;i++){
+                tcp_bytes[i-offset]=frame[i];
+
+
+
+            }
+            tcp tp;
+            parse_tcp_header(tp,tcp_bytes);
+            cout << "sp"<<tp.source_port<<'\n';
+            cout << "dp"<< tp.destination_port <<'\n';
+
+
+
+        }
     }
     else if (typei == 0x0806) {
 
