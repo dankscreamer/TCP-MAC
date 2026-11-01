@@ -41,3 +41,36 @@ void serialise_tcp_header(tcp &tl,array<uint8_t,20> &sms){
     
 
 }
+void parse_tcp_header(tcp &tl, array<uint8_t, 20> &sqs) {
+
+    tl.source_port = (static_cast<uint16_t>(sqs[0]) << 8) |
+                      sqs[1];
+
+    tl.destination_port = (static_cast<uint16_t>(sqs[2]) << 8) |
+                           sqs[3];
+
+    tl.sequence_number = (static_cast<uint32_t>(sqs[4]) << 24) |
+                         (static_cast<uint32_t>(sqs[5]) << 16) |
+                         (static_cast<uint32_t>(sqs[6]) << 8) |
+                         sqs[7];
+
+    tl.acknowledgement_number = (static_cast<uint32_t>(sqs[8]) << 24) |
+                                (static_cast<uint32_t>(sqs[9]) << 16) |
+                                (static_cast<uint32_t>(sqs[10]) << 8) |
+                                sqs[11];
+
+    tl.data_offset = (sqs[12] >> 4) & 0x0F;
+
+    tl.reserved_bits = (sqs[12] >> 1) & 0x07;
+
+    tl.flags = ((sqs[12] & 0x01) << 8) | sqs[13];
+
+    tl.window_size = (static_cast<uint16_t>(sqs[14]) << 8) |
+                      sqs[15];
+
+    tl.checksum = (static_cast<uint16_t>(sqs[16]) << 8) |
+                   sqs[17];
+
+    tl.urgent_pointer = (static_cast<uint16_t>(sqs[18]) << 8) |
+                         sqs[19];
+}
