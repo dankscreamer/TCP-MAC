@@ -29,7 +29,6 @@ void dispatch(vector<uint8_t> &frame) {
             cout << "IPv4 header incomplete\n";
             return;
         }
-        
 
         array<uint8_t, 20> ipv4_bytes{};
 
@@ -39,22 +38,83 @@ void dispatch(vector<uint8_t> &frame) {
 
         ipv4 head{};
         parse_ipv4_header(ipv4_bytes, head);
-        if (head.protocol==6){
-            int offset=14+(head.ihl*4);
-            array<uint8_t,20> tcp_bytes;
-            for (int i=offset;i<offset+20;i++){
-                tcp_bytes[i-offset]=frame[i];
 
+        if (head.ihl != 5) {
+            cout << "IPv4 options not supported yet\n";
+            return;
+        }
 
+        size_t ip_header_length = head.ihl * 4;
 
+        if (head.total_length < ip_header_length) {
+            cout << "Invalid IPv4 total length\n";
+            return;
+        }
+
+        if (frame.size() < 14 + head.total_length) {
+            cout << "Incomplete IPv4 packet\n";
+            return;
+        }
+
+        if (head.protocol == 6) {
+
+            if ((head.flag & 0x1) || head.fragment_offset != 0) {
+                cout << "Fragmented IPv4 packet not supported\n";
+                return;
             }
-            tcp tp;
-            parse_tcp_header(tp,tcp_bytes);
-            cout << "sp"<<tp.source_port<<'\n';
-            cout << "dp"<< tp.destination_port <<'\n';
 
+            if (head.total_length < ip_header_length + 20) {
+                cout << "TCP header incomplete\n";
+                return;
+            }
 
+            int offset = 14 + (head.ihl * 4);
 
+            array<uint8_t, 20> tcp_bytes{};
+
+            for (int i = offset; i < offset + 20; i++) {
+                tcp_bytes[i - offset] = frame[i];
+            }
+
+            tcp tp{};
+            parse_tcp_header(tp, tcp_bytes);
+
+            if (tp.data_offset < 5) {
+                cout << "Invalid TCP data offset\n";
+                return;
+            }
+
+            size_t tcp_header_length = tp.data_offset * 4;
+
+            if (ip_header_length + tcp_header_length > head.total_length) {
+                cout << "TCP header exceeds IPv4 packet length\n";
+                return;
+            }
+
+            size_t payload_length =
+                head.total_length - ip_header_length - tcp_header_length;
+
+            size_t payload_offset = offset + tcp_header_length;
+
+            vector<uint8_t> payload;
+
+            payload.insert(
+                payload.end(),
+                frame.begin() + payload_offset,
+                frame.begin() + payload_offset + payload_length
+            );
+
+            cout << "sp" << tp.source_port << '\n';
+            cout << "dp" << tp.destination_port << '\n';
+
+            cout << "TCP Header Length: " << tcp_header_length << '\n';
+            cout << "Payload Length: " << payload_length << '\n';
+
+            cout << "Payload: ";
+            for (uint8_t byte : payload) {
+                cout << static_cast<char>(byte);
+            }
+            cout << '\n';
         }
     }
     else if (typei == 0x0806) {
