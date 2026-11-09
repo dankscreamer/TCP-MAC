@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <array>
-using namespace std;
+using namespace std ;
 
 struct Ethernet_header{
     array<uint8_t,6> destination_mac;
