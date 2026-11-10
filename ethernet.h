@@ -6,7 +6,7 @@
 using namespace std ;
 
 struct Ethernet_header{
-    array<uint8_t,6> destination_mac;
+    array<uint8_t,6>  destination_mac;
     array<uint8_t,6>   source_mac;
     uint16_t ether_type;
 
